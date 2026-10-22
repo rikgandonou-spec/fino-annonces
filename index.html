@@ -1,0 +1,49 @@
+
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Fino - Annonces au Bénin</title>
+  <style>
+    body { font-family: Arial, sans-serif; margin: 0; background: #f4f6f8; color: #222; }
+    header { background: #087f5b; color: white; padding: 24px 16px; text-align: center; }
+    main { max-width: 700px; margin: 24px auto; padding: 16px; }
+    .card { background: white; padding: 20px; border-radius: 12px; margin-bottom: 18px; }
+    input, textarea, button { box-sizing: border-box; width: 100%; padding: 12px; margin-top: 10px; border-radius: 7px; border: 1px solid #ccc; font-size: 16px; }
+    button { background: #087f5b; color: white; border: 0; font-weight: bold; }
+    .note { color: #555; font-size: 14px; }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>FINO</h1>
+    <p>Le marché des bonnes affaires au Bénin</p>
+  </header>
+  <main>
+    <section class="card">
+      <h2>Publier une annonce</h2>
+      <p>Votre première annonce est gratuite. Les suivantes coûtent 1 000 FCFA.</p>
+      <form id="annonceForm">
+        <input id="titre" placeholder="Titre de l'annonce" required>
+        <textarea id="description" placeholder="Description du produit" required></textarea>
+        <input id="ville" placeholder="Ville (ex. Abomey-Calavi)" required>
+        <input id="telephone" type="tel" placeholder="Téléphone" required>
+        <button type="submit">Publier mon annonce</button>
+      </form>
+      <p class="note" id="message"></p>
+    </section>
+    <section class="card">
+      <h2>Les annonces</h2>
+      <p id="liste">Les annonces apparaîtront ici après la connexion à la base de données.</p>
+    </section>
+  </main>
+  <script>
+    document.getElementById("annonceForm").addEventListener("submit", function(e) {
+      e.preventDefault();
+      document.getElementById("message").textContent =
+        "Le formulaire est prêt. La connexion à Supabase et le paiement devront être configurés pour publier réellement.";
+    });
+  </script>
+</body>
+</html>
