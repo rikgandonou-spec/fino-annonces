@@ -1,3 +1,87 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Anselme Seseno’s — Petites annonces</title>
+<style>
+:root{--green:#087f5b;--ink:#17212b;--muted:#64748b;--paper:#f5f7f6;--line:#e2e8f0}
+*{box-sizing:border-box}body{margin:0;font-family:system-ui,-apple-system,Segoe UI,Roboto,sans-serif;background:var(--paper);color:var(--ink)}
+header{background:linear-gradient(135deg,#064e3b,#0f9b70);color:white;padding:28px 18px 34px}
+.wrap{max-width:980px;margin:auto}header h1{margin:0 0 8px;font-size:clamp(25px,5vw,38px)}header p{margin:0;opacity:.95}
+main{max-width:980px;margin:20px auto;padding:0 14px}.panel{background:white;border:1px solid var(--line);border-radius:16px;padding:18px;margin-bottom:18px;box-shadow:0 5px 18px #0f172a08}
+h2{margin:0 0 14px;font-size:21px}.formgrid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+label{font-size:14px;font-weight:650;display:block}input,textarea,select{width:100%;padding:12px;margin-top:6px;border:1px solid #cbd5e1;border-radius:10px;font:inherit;background:white}
+textarea{min-height:90px;resize:vertical}.full{grid-column:1/-1}button{border:0;background:var(--green);color:white;font-weight:700;border-radius:10px;padding:12px 16px;font:inherit;cursor:pointer}button:disabled{opacity:.6;cursor:wait}.hint{font-size:13px;color:var(--muted);line-height:1.5}.status{margin-top:10px;font-size:14px}.searchrow{display:flex;gap:10px;margin-bottom:14px}.searchrow input{margin:0}
+.cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:13px}.listing{border:1px solid var(--line);border-radius:13px;padding:15px;background:white;overflow-wrap:anywhere}.listing h3{margin:0 0 8px;font-size:18px}.price{font-size:19px;font-weight:800;color:var(--green);margin:6px 0}.tag{display:inline-block;background:#ecfdf5;color:#065f46;border-radius:99px;padding:4px 9px;font-size:12px;margin-bottom:8px}.empty{padding:20px;text-align:center;color:var(--muted)}footer{text-align:center;color:var(--muted);font-size:12px;padding:20px}
+@media(max-width:560px){.formgrid{grid-template-columns:1fr}.full{grid-column:auto}.searchrow{flex-direction:column}}
+</style>
+</head>
+<body>
+<header><div class="wrap"><h1>Anselme Seseno’s</h1><p>Les bonnes affaires commencent ici.</p></div></header>
+<main>
+<section class="panel">
+<h2>Publier une annonce</h2>
+<p class="hint">La première annonce est prévue gratuite ; les annonces suivantes coûteront 1 000 FCFA. Le paiement et le suivi du nombre d’annonces ne sont pas encore automatisés sur cette version.</p>
+<form id="adForm" class="formgrid">
+<label>Titre de l’annonce *<input name="titre" required maxlength="120" placeholder="Ex. Téléphone en bon état"></label>
+<label>Catégorie *<select name="categorie" required><option value="">Choisir</option><option>Immobilier</option><option>Véhicules</option><option>Téléphones</option><option>Informatique</option><option>Maison</option><option>Mode</option><option>Emploi</option><option>Services</option><option>Autres</option></select></label>
+<label>Prix en FCFA *<input name="prix" type="number" min="0" step="1" required placeholder="Ex. 50000"></label>
+<label>Ville *<input name="ville" required maxlength="80" placeholder="Ex. Abomey-Calavi"></label>
+<label>Téléphone de contact *<input name="telephone" required maxlength="40" inputmode="tel" placeholder="Ex. 01 XX XX XX XX"></label>
+<label class="full">Description *<textarea name="description" required maxlength="3000" placeholder="Décris ton article ou ton service..."></textarea></label>
+<div class="full"><button id="submitBtn" type="submit">Publier l’annonce</button><div id="formStatus" class="status" role="status"></div></div>
+</form>
+</section>
+<section class="panel">
+<h2>Annonces récentes</h2>
+<div class="searchrow"><input id="search" type="search" placeholder="Rechercher une annonce, une ville ou une catégorie"><button id="refreshBtn" type="button">Actualiser</button></div>
+<div id="listings" class="cards"><div class="empty">Chargement des annonces…</div></div>
+<p id="listStatus" class="status"></p>
+</section>
+</main>
+<footer>Anselme Seseno’s · Petites annonces au Bénin</footer>
+<script>
+const SUPABASE_URL = "https://akedoeakwzybyerghowf.supabase.co";
+const SUPABASE_KEY = "sb_publishable_GamUJbbWMfPX5n0sjcQWhQ_OswfJtw2";
+const TABLE_URL = `${SUPABASE_URL}/rest/v1/annonce`;
+const headers = {"apikey":SUPABASE_KEY,"Authorization":`Bearer ${SUPABASE_KEY}`,"Content-Type":"application/json"};
+const listingsEl=document.getElementById("listings"), listStatus=document.getElementById("listStatus");
+let listings=[];
+function esc(v){return String(v??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));}
+function money(v){const n=Number(v);return Number.isFinite(n)?new Intl.NumberFormat("fr-FR").format(n)+" FCFA":"Prix à discuter";}
+function render(){
+ const q=document.getElementById("search").value.trim().toLocaleLowerCase("fr");
+ const filtered=listings.filter(a=>[a.titre,a.description,a.ville,a.categorie].some(v=>String(v??"").toLocaleLowerCase("fr").includes(q)));
+ if(!filtered.length){listingsEl.innerHTML='<div class="empty">Aucune annonce trouvée pour le moment.</div>';return;}
+ listingsEl.innerHTML=filtered.map(a=>`<article class="listing"><span class="tag">${esc(a.categorie||"Autres")}</span><h3>${esc(a.titre)}</h3><div class="price">${money(a.prix)}</div><p>${esc(a.description)}</p><p class="hint">📍 ${esc(a.ville)}<br>☎ ${esc(a.telephone)}</p></article>`).join("");
+}
+async function loadListings(){
+ listingsEl.innerHTML='<div class="empty">Chargement des annonces…</div>';listStatus.textContent="";
+ try{
+  const res=await fetch(`${TABLE_URL}?select=id,created_at,titre,description,prix,ville,telephone,categorie&order=created_at.desc`,{headers});
+  if(!res.ok) throw new Error(await res.text());
+  listings=await res.json();render();
+ }catch(e){listingsEl.innerHTML='<div class="empty">Impossible de charger les annonces pour le moment.</div>';listStatus.textContent="Vérifie la connexion Supabase et les autorisations de lecture de la table.";console.error(e);}
+}
+document.getElementById("adForm").addEventListener("submit",async e=>{
+ e.preventDefault();const form=e.currentTarget,btn=document.getElementById("submitBtn"),status=document.getElementById("formStatus");
+ const f=new FormData(form);const payload={titre:String(f.get("titre")).trim(),categorie:String(f.get("categorie")).trim(),prix:Number(f.get("prix")),ville:String(f.get("ville")).trim(),telephone:String(f.get("telephone")).trim(),description:String(f.get("description")).trim()};
+ if(!Number.isFinite(payload.prix)||payload.prix<0){status.textContent="Entre un prix valide.";return;}
+ btn.disabled=true;status.textContent="Publication en cours…";
+ try{
+  const res=await fetch(TABLE_URL,{method:"POST",headers:{...headers,"Prefer":"return=representation"},body:JSON.stringify(payload)});
+  if(!res.ok) throw new Error(await res.text());
+  form.reset();status.textContent="Annonce publiée avec succès !";await loadListings();
+ }catch(err){status.textContent="La publication n’est pas encore autorisée par Supabase. Il faut configurer la règle d’ajout avant de publier.";console.error(err);}
+ finally{btn.disabled=false;}
+});
+document.getElementById("search").addEventListener("input",render);
+document.getElementById("refreshBtn").addEventListener("click",loadListings);
+loadListings();
+</script>
+</body>
+</html>
 
 <!DOCTYPE html>
 <html lang="fr">
